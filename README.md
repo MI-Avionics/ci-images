@@ -1,12 +1,14 @@
 # ci-images
 
-`ghcr.io/mi-avionics/ci-base` is the standard job container for MI-Avionics' self-hosted runners (`runs-on: [self-hosted, onprem]`). Those runners require every job to run in a container, so that each job starts clean instead of inheriting whatever earlier jobs left on the host.
+`ci-base` is the standard job container for MI-Avionics' self-hosted runners (`runs-on: [self-hosted, onprem]`). Those runners require every job to run in a container, so that each job starts clean instead of inheriting whatever earlier jobs left on the host.
+
+Each runner VM builds this Dockerfile itself, at a commit pinned in the Ansible role (`github_runner_ci_base_ref`), and serves it from a registry that only that VM can reach. Jobs refer to it as `localhost:5000/ci-base:1` and need no registry login. The org doesn't allow public packages, so jobs can't pull from ghcr.io without a login. The copy this repo's workflow pushes to `ghcr.io/mi-avionics/ci-base` is private, and isn't what jobs use.
 
 ```yaml
 jobs:
   build:
     runs-on: [self-hosted, onprem]
-    container: ghcr.io/mi-avionics/ci-base:1
+    container: localhost:5000/ci-base:1
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: terraform version
@@ -31,16 +33,9 @@ Ubuntu 24.04 plus:
 
 `actions/setup-python`, `actions/setup-node` and `hashicorp/setup-terraform` still work inside it, if a job needs a different version.
 
-## Tags
+## Versions
 
-| Tag | Meaning |
-|---|---|
-| `1` | **Use this.** The current build of major version 1, rebuilt weekly with security updates. |
-| `1-YYYYMMDD` | One specific build, if a job must not change. |
-| `latest` | Same as the newest major; avoid in workflows. |
-| `sha-<commit>` | The build from a given commit of this repo. |
-
-A new major (`2`) only comes with a breaking change, such as a new Ubuntu release or a removed tool, so `ci-base:1` users don't break.
+Jobs use `localhost:5000/ci-base:1`. Each runner VM rebuilds it weekly from the pinned commit, without cache, so OS and tool updates arrive without any change here. A new major (`2`) would only come with a breaking change, such as a new Ubuntu release or a removed tool, so `ci-base:1` users don't break.
 
 ## Jobs that need Docker
 
@@ -48,7 +43,7 @@ Job containers have no Docker access. A job that runs `docker build` / `docker r
 
 ```yaml
     container:
-      image: ghcr.io/mi-avionics/ci-base:1
+      image: localhost:5000/ci-base:1
       options: -v /var/run/docker.sock:/var/run/docker.sock
 ```
 
@@ -56,4 +51,5 @@ That gives the job root on the runner VM, so keep it to the jobs that need it.
 
 ## Adding a tool
 
-Edit the `Dockerfile` and open a pull request. The build workflow builds and smoke-tests it on the PR. Once merged to `main`, it's published as `ci-base:1` within a few minutes. Add the tool's version check to the smoke test in `.github/workflows/build.yml`.
+1. Edit the `Dockerfile`, add the tool's version check to the smoke test in `.github/workflows/build.yml`, and open a pull request. The workflow builds and smoke-tests it.
+2. Once it's merged, set `github_runner_ci_base_ref` in the Ansible repo's `roles/github_runner/defaults/main.yml` to the new commit and run the runner play (`--tags github_runner`). Each runner VM then rebuilds ci-base before its next job.
