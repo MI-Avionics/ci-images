@@ -18,12 +18,13 @@ New workflows can start from the org template: **Actions → New workflow → On
 
 ## What's in it
 
-Ubuntu 24.04 plus:
+Ubuntu 26.04 (the runner VMs' release, so cached tools work in both) plus:
 
 | Tool | Source |
 |---|---|
 | git, git-lfs, curl, wget, jq, zip/unzip, rsync, make, build-essential | Ubuntu |
 | Python 3 + pip + venv (`python` → `python3`) | Ubuntu; `pip install` works outside a venv (`PIP_BREAK_SYSTEM_PACKAGES=1`) |
+| `/bin/sh` is bash; git trusts any directory | So `run:` steps behave as on the host, and root can use the runner's workspace |
 | Node.js 24 LTS + npm | NodeSource |
 | Terraform 1.17.0 | HashiCorp apt repo (pinned in the Dockerfile) |
 | AWS CLI v2 | AWS installer |
