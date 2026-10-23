@@ -54,6 +54,7 @@ jobs:
           docker run --rm ci-base:test bash -euo pipefail -c '
             sh -ec "set -o pipefail; [[ -n bash ]]"
             git config --system --get-all safe.directory | grep -qx "\*"
+            test "$AGENT_TOOLSDIRECTORY" = /opt/hostedtoolcache
             git --version; git lfs version; jq --version; zip -v | head -2 | tail -1
             python --version; pip --version
             node --version; npm --version

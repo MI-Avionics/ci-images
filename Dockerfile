@@ -65,6 +65,20 @@ RUN dpkg-divert --local --no-rename --divert /usr/bin/sh.distrib --add /usr/bin/
 # throwaway CI container.
 RUN git config --system --add safe.directory '*'
 
+# The same, for git run with its config hidden (GIT_CONFIG_NOSYSTEM, as
+# hermetic test harnesses do): as root, git treats directories owned by
+# $SUDO_UID as safe. The runner VMs build this image with
+# --build-arg RUNNER_UID=<their github-runner uid>; empty elsewhere.
+ARG RUNNER_UID=
+ENV SUDO_UID=${RUNNER_UID}
+
+# setup-python installs into AGENT_TOOLSDIRECTORY when it's set, so each
+# container job gets its own Python instead of the runner's shared tool
+# cache. Pythons a host job cached there have the host path baked into
+# their scripts (pip: "bad interpreter") and link the host's libraries.
+ENV AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache
+RUN mkdir -p /opt/hostedtoolcache
+
 # AWS CLI v2 isn't in apt; AWS's own installer.
 RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscli.zip \
  && unzip -q /tmp/awscli.zip -d /tmp \
