@@ -53,9 +53,11 @@ RUN apt-get update \
 # Match how the runner runs `run:` steps on the host. With no `shell:`, it
 # uses `sh -e` inside a container but bash on the host, and these workflows
 # are written for bash (`set -o pipefail`, [[ ]]). Pointing /bin/sh at bash
-# keeps that without changing every workflow.
-RUN echo "dash dash/sh boolean false" | debconf-set-selections \
- && dpkg-reconfigure dash \
+# keeps that without changing every workflow. (26.04's dash dropped the
+# debconf `dash/sh` switch; the diversion keeps a dash upgrade from putting
+# the link back.)
+RUN dpkg-divert --local --no-rename --divert /usr/bin/sh.distrib --add /usr/bin/sh \
+ && ln -sf bash /usr/bin/sh \
  && test "$(readlink -f /bin/sh)" = /usr/bin/bash
 
 # Workspace files keep the host runner user's uid, but jobs run as root
