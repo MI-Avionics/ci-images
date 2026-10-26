@@ -31,7 +31,7 @@ Ubuntu 26.04 (the runner VMs' release, so cached tools work in both) plus:
 | AWS CLI v2 | AWS installer |
 | GitHub CLI (`gh`) | GitHub apt repo |
 | Salesforce CLI (`sf`) | npm |
-| Docker CLI + buildx | Docker apt repo (needs the socket; see below) |
+| Docker CLI + buildx | Docker apt repo (talks to the runner VM's Docker; see below) |
 
 `actions/setup-python`, `actions/setup-node` and `hashicorp/setup-terraform` still work inside it, if a job needs a different version.
 
@@ -39,17 +39,11 @@ Ubuntu 26.04 (the runner VMs' release, so cached tools work in both) plus:
 
 Jobs use `localhost:5000/ci-base:1`. Each runner VM rebuilds it weekly from the pinned commit, without cache, so OS and tool updates arrive without any change here. A new major (`2`) would only come with a breaking change, such as a new Ubuntu release or a removed tool, so `ci-base:1` users don't break.
 
-## Jobs that need Docker
+## Docker access
 
-Job containers have no Docker access. A job that runs `docker build` / `docker run` has to mount the host's socket:
+Every job container already has the runner VM's Docker socket. The Actions runner mounts `/var/run/docker.sock` into all job containers on Linux, and neither the image nor the workflow can turn that off. So `docker build` / `docker run` work with no extra `options:`.
 
-```yaml
-    container:
-      image: localhost:5000/ci-base:1
-      options: -v /var/run/docker.sock:/var/run/docker.sock
-```
-
-That gives the job root on the runner VM, so keep it to the jobs that need it.
+Docker access is root on the runner VM. A container gives each job a clean, repeatable toolset, but it is **not** a security boundary between jobs: a job can reach the host, other jobs' containers and their work directories through Docker. Treat every workflow that runs on these runners as trusted. That's what the `onprem-trusted` runner group's repository list is for.
 
 ## Adding a tool
 

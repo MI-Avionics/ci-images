@@ -22,8 +22,10 @@ env:
 
 jobs:
   build:
-    # GitHub-hosted on purpose: building an image needs Docker, which job
-    # containers on the on-prem runners don't get.
+    # GitHub-hosted on purpose: this only checks Dockerfile changes (and
+    # publishes a private ghcr.io copy). The on-prem runner VMs build their
+    # own ci-base from a pinned commit, so this repo's CI doesn't depend on
+    # the runners it builds for.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
