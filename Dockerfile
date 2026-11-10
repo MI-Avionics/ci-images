@@ -16,9 +16,14 @@ ARG NODE_MAJOR=24
 # venv (PEP 668). Each job gets a fresh copy of this image, so installing
 # into the system Python is harmless here and matches what workflows
 # written for ubuntu-latest expect.
+# PIP_CACHE_DIR: jobs run as root, but the runner sets HOME to /github/home,
+# a host folder the runner's own user owns. Pip run as root refuses a cache
+# folder root doesn't own, disables the cache and warns on stderr, which
+# actions/setup-python reports as an error annotation. /root is root's.
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     PIP_BREAK_SYSTEM_PACKAGES=1 \
+    PIP_CACHE_DIR=/root/.cache/pip \
     PIP_ROOT_USER_ACTION=ignore
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
