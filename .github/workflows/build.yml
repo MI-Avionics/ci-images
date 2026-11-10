@@ -67,6 +67,19 @@ jobs:
             docker --version
           '
 
+      # Jobs get HOME=/github/home, a folder the runner's (non-root) user
+      # owns. Pip must keep its cache instead of warning that it's disabled.
+      - name: Smoke-test pip with the runner's HOME
+        run: |
+          home=$(mktemp -d)
+          out=$(docker run --rm -e HOME=/github/home -v "$home:/github/home" ci-base:test \
+            python -m pip install --disable-pip-version-check --no-deps six 2>&1)
+          echo "$out"
+          if grep -q "cache has been disabled" <<<"$out"; then
+            echo "::error::pip disabled its cache under the runner's HOME"
+            exit 1
+          fi
+
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         if: github.event_name != 'pull_request'
         with:
